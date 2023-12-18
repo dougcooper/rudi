@@ -1,0 +1,12 @@
+[package]
+name = "rudi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serial_test = "2.0.0"
+socket2 = { version = "0.5.5", features = ["all"] }
+tokio = { version = "1.35.0", features = ["full", "net", "sync"] }
+
+[dev-dependencies]
+rstest = "0.18.2"

@@ -50,7 +50,7 @@ impl Connection {
                 match socket.recv_from(&mut buf).await {
                     Ok(_) => {
                         if tx1.receiver_count() > 0 {
-                            if let Err(_) = tx1.send(Datagram(buf.into())) {
+                            if let Err(_) = tx1.send(buf.into()) {
                                 //TODO: log error
                             };
                         }

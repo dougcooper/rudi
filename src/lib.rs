@@ -1,10 +1,9 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
 
-mod connection;
+pub mod connection;
 pub mod udpmanager;
 
-#[derive(Clone,Debug)]
-pub struct Datagram(Vec<u8>);
+pub type Datagram = Vec<u8>;
 
 #[derive(PartialEq,Eq,Hash,Clone)]
 pub enum CastMode {
@@ -26,7 +25,7 @@ mod test{
     use crate::*;
 
     #[test]
-    fn if_can_hash(){
+    fn it_can_hash(){
         let config = IpConfigV4{
             cast_mode: CastMode::Unicast,
             addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap()

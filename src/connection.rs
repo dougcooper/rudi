@@ -55,7 +55,7 @@ impl Connection {
             loop {
                 match socket_rx.recv_from(&mut buf).await {
                     Ok((bytes_read, _)) => {
-                        if tx1.receiver_count() > 0 {
+                        if tx1.receiver_count() > 0 && bytes_read > 0 {
                             let data = if let Some(data) = buf.get(..bytes_read - 1) {
                                 data.into()
                             } else {

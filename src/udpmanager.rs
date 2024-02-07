@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use tokio::{io, sync::broadcast::Receiver};
 
@@ -26,4 +26,12 @@ impl UdpManager {
     pub fn count(&self) -> usize {
         self.connections.len()
     }
+
+    pub fn get_socket(&self, config: &IpConfigV4) -> Option<Arc<tokio::net::UdpSocket>> {
+        if let Some(conn) = self.connections.get(config){
+            Some(conn.socket.clone())
+        }else{
+            None
+        }
+    } 
 }

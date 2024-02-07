@@ -415,6 +415,7 @@ dependencies = [
 name = "rudi"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "rstest",
  "serial_test",
  "socket2",

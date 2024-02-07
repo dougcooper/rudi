@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
 use crate::{Datagram, IpConfigV4};
 use socket2::{Domain, SockAddr, Socket, Type, Protocol};
 use tokio::io;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast::{self, Receiver, Sender};
+use bytes::BytesMut;
 
-const MAX_PDU_SIZE_BYTES: usize = 8192;
+const MAX_DATAGRAM_SIZE: usize = 65507;
 
 fn make_udp_socket(addr: &SockAddr, _reuse_port: bool) -> io::Result<Socket> {
     let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
@@ -16,6 +19,7 @@ fn make_udp_socket(addr: &SockAddr, _reuse_port: bool) -> io::Result<Socket> {
 
 pub struct Connection {
     tx: Sender<Datagram>,
+    pub socket: Arc<UdpSocket>,
 }
 
 impl Connection {
@@ -44,13 +48,15 @@ impl Connection {
         //TODO: how big should this be
         let (tx, _) = broadcast::channel::<Datagram>(16);
         let tx1 = tx.clone();
+        let socket_rx = Arc::new(socket);
+        let socket_tx = socket_rx.clone();
         tokio::spawn(async move {
-            let mut buf = [0; MAX_PDU_SIZE_BYTES];
+            let mut buf = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
             loop {
-                match socket.recv_from(&mut buf).await {
-                    Ok(_) => {
+                match socket_rx.recv_from(&mut buf).await {
+                    Ok((bytes_read,_)) => {
                         if tx1.receiver_count() > 0 {
-                            if let Err(_) = tx1.send(buf.into()) {
+                            if let Err(_) = tx1.send(buf[..bytes_read].into()) {
                                 //TODO: log error
                             };
                         }
@@ -61,7 +67,7 @@ impl Connection {
                 }
             }
         });
-        Ok(Connection { tx: tx })
+        Ok(Connection { tx: tx, socket: socket_tx })
     }
 
     pub fn subscribe(&self) -> Receiver<Datagram> {

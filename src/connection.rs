@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::{Datagram, IpConfigV4};
-use socket2::{Domain, SockAddr, Socket, Type, Protocol};
+use bytes::BytesMut;
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use tokio::io;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast::{self, Receiver, Sender};
-use bytes::BytesMut;
 
 const MAX_DATAGRAM_SIZE: usize = 65507;
 
@@ -27,10 +27,10 @@ impl Connection {
         let s = make_udp_socket(
             &SockAddr::from(config.addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
-            match config.cast_mode{
+            match config.cast_mode {
                 crate::CastMode::Unicast => false,
-                _=> true,
-            }
+                _ => true,
+            },
         )?;
 
         let socket = UdpSocket::from_std(s.into())?;
@@ -54,9 +54,14 @@ impl Connection {
             let mut buf = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
             loop {
                 match socket_rx.recv_from(&mut buf).await {
-                    Ok((bytes_read,_)) => {
+                    Ok((bytes_read, _)) => {
                         if tx1.receiver_count() > 0 {
-                            if let Err(_) = tx1.send(buf[..bytes_read].into()) {
+                            let data = if let Some(data) = buf.get(..bytes_read - 1) {
+                                data.into()
+                            } else {
+                                vec![]
+                            };
+                            if let Err(_) = tx1.send(data.into()) {
                                 //TODO: log error
                             };
                         }
@@ -67,10 +72,26 @@ impl Connection {
                 }
             }
         });
-        Ok(Connection { tx: tx, socket: socket_tx })
+        Ok(Connection {
+            tx: tx,
+            socket: socket_tx,
+        })
     }
 
     pub fn subscribe(&self) -> Receiver<Datagram> {
         self.tx.subscribe()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bytes::{BufMut, BytesMut};
+
+    #[test]
+    fn it_works() {
+        let mut buf = BytesMut::with_capacity(1024);
+        buf.put(&b"12345"[..]);
+        assert!(buf.get(..5).is_some());
+        assert!(buf.get(..6).is_none());
     }
 }

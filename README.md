@@ -29,3 +29,10 @@ cargo install cross
 cross test --target x86_64-unknown-linux-gnu
 ```
 
+## ROADMAP
+
+- [ ] restrict to interface using connect
+
+## Issues
+
+- [ ] restricting to interface

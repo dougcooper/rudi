@@ -63,7 +63,7 @@ async fn test_permutations(#[case] conns: (IpConfigV4, IpConfigV4), #[case] resu
 
 #[tokio::test]
 #[serial]
-async fn test_rx_data() {
+async fn test_rx_data_unicast() {
     let mut udp = UdpManager::default();
     let unicast = IpConfigV4 {
         cast_mode: CastMode::Unicast,
@@ -83,6 +83,34 @@ async fn test_rx_data() {
 
     let sock = udp.get_socket(&unicast).unwrap();
     sock.send_to(data,"127.0.0.1:6993").await.unwrap();
+
+    let r = h.await.unwrap().unwrap();
+
+    assert_eq!(r, data);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_rx_data_multicast() {
+    let mut udp = UdpManager::default();
+    let unicast = IpConfigV4 {
+        cast_mode: CastMode::Multicast("225.1.1.100".parse::<Ipv4Addr>().unwrap()),
+        addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
+    };
+    let mut rx1 = udp.subscribe(&unicast).await.unwrap();
+
+    let h = tokio::spawn(async move {
+        if let Ok(data) = rx1.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let data = b"deadbeef";
+
+    let sock = udp.get_socket(&unicast).unwrap();
+    sock.send_to(data,"225.1.1.100:6993").await.unwrap();
 
     let r = h.await.unwrap().unwrap();
 

@@ -10,11 +10,11 @@ async fn recv_data(rx: &mut tokio::sync::broadcast::Receiver<Vec<u8>>) {
 #[tokio::main]
 async fn main() {
     let mut udp = UdpManager::default();
-    let unicast = IpConfigV4 {
+    let mcast = IpConfigV4 {
         cast_mode: CastMode::Multicast("224.1.1.100".parse::<Ipv4Addr>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&unicast).await.unwrap();
+    let mut rx1 = udp.subscribe(&mcast).await.unwrap();
 
     let mut ctrlc = tokio::spawn(tokio::signal::ctrl_c());
 

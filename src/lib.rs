@@ -5,14 +5,14 @@ pub mod udpmanager;
 
 pub type Datagram = Vec<u8>;
 
-#[derive(PartialEq,Eq,Hash,Clone)]
+#[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub enum CastMode {
     Unicast,
     Broadcast,
     Multicast(Ipv4Addr)
 }
 
-#[derive(PartialEq,Eq,Hash,Clone)]
+#[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub struct IpConfigV4{
     pub cast_mode: CastMode,
     pub addr: SocketAddrV4

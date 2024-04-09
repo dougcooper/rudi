@@ -14,7 +14,7 @@ async fn main() {
         cast_mode: CastMode::Multicast("224.1.1.100".parse::<Ipv4Addr>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&mcast).await.unwrap();
+    let mut rx1 = udp.subscribe(&mcast,None).await.unwrap();
 
     let mut ctrlc = tokio::spawn(tokio::signal::ctrl_c());
 

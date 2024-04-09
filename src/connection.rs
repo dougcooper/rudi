@@ -22,7 +22,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn new(config: &IpConfigV4) -> io::Result<Self> {
+    pub async fn new(config: &IpConfigV4, tx: Sender<Datagram>) -> io::Result<Self> {
         let s = make_udp_socket(
             &SockAddr::from(config.addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
@@ -44,8 +44,6 @@ impl Connection {
             }
         };
 
-        //TODO: how big should this be
-        let (tx, _) = broadcast::channel::<Datagram>(16);
         let tx1 = tx.clone();
         let socket_rx = Arc::new(socket);
         let socket_tx = socket_rx.clone();

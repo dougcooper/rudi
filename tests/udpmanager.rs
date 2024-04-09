@@ -13,7 +13,7 @@ async fn example_usage() {
         cast_mode: CastMode::Unicast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&unicast).await.unwrap();
+    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     tokio::spawn(async move {
         while let Ok(data) = rx1.recv().await {
@@ -32,7 +32,7 @@ async fn sharing_sockets_not_allowed() {
         cast_mode: CastMode::Unicast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    udp.subscribe(&unicast).await.unwrap();
+    udp.subscribe(&unicast,None).await.unwrap();
 
     assert!(UdpSocket::bind("0.0.0.0:6993").await.is_err());
 }
@@ -56,8 +56,8 @@ fn config(mode: CastMode, addr: &str) -> IpConfigV4 {
 #[serial]
 async fn test_permutations(#[case] conns: (IpConfigV4, IpConfigV4), #[case] result: usize) {
     let mut udp = UdpManager::default();
-    udp.subscribe(&conns.0).await.unwrap();
-    udp.subscribe(&conns.1).await.unwrap();
+    udp.subscribe(&conns.0,None).await.unwrap();
+    udp.subscribe(&conns.1,None).await.unwrap();
     assert_eq!(udp.count(), result);
 }
 
@@ -69,7 +69,7 @@ async fn test_rx_data_unicast() {
         cast_mode: CastMode::Unicast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&unicast).await.unwrap();
+    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -97,7 +97,7 @@ async fn test_rx_data_multicast() {
         cast_mode: CastMode::Multicast("225.1.1.100".parse::<Ipv4Addr>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&mcast).await.unwrap();
+    let mut rx1 = udp.subscribe(&mcast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {

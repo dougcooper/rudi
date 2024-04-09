@@ -11,15 +11,23 @@ let unicast = IpConfigV4 {
     cast_mode: CastMode::Unicast,
     addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
 };
-let mut rx1 = udp.subscribe(&unicast).await.unwrap();
+let channel_size = Some(100);
+let mut rx1 = udp.subscribe(&unicast,channel_size).await.unwrap();
+let mut rx2 = udp.subscribe(&unicast,None).await.unwrap();
 
 tokio::spawn(async move {
     while let Ok(data) = rx1.recv().await {
-        println!("{:?}", data);
+        println!("rx1 {:?}", data);
     }
 });
 
-assert_eq!(udp.count(), 1);
+tokio::spawn(async move {
+    while let Ok(data) = rx2.recv().await {
+        println!("rx2 {:?}", data);
+    }
+});
+
+assert_eq!(udp.count(), 2);
 ```
 
 ## test using cross

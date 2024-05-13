@@ -13,7 +13,7 @@ async fn example_usage() {
         cast_mode: CastMode::Unicast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
+    let rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     tokio::spawn(async move {
         while let Ok(data) = rx1.recv().await {
@@ -69,7 +69,7 @@ async fn test_rx_data_unicast() {
         cast_mode: CastMode::Unicast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
+    let rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -97,7 +97,7 @@ async fn test_rx_data_multicast() {
         cast_mode: CastMode::Multicast("225.1.1.100".parse::<Ipv4Addr>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let mut rx1 = udp.subscribe(&mcast,None).await.unwrap();
+    let rx1 = udp.subscribe(&mcast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {

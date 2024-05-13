@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::{Datagram, IpConfigV4};
+use async_channel::{Receiver, Sender};
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use tokio::io;
 use tokio::net::UdpSocket;
-use tokio::sync::broadcast::{Receiver, Sender};
 
 const MAX_DATAGRAM_SIZE: usize = 65507;
 
@@ -17,12 +17,12 @@ fn make_udp_socket(addr: &SockAddr, _reuse_port: bool) -> io::Result<Socket> {
 }
 
 pub struct Connection {
-    tx: Sender<Datagram>,
+    rx: Receiver<Datagram>,
     pub socket: Arc<UdpSocket>,
 }
 
 impl Connection {
-    pub async fn new(config: &IpConfigV4, tx: Sender<Datagram>) -> io::Result<Self> {
+    pub async fn new(config: &IpConfigV4, tx: Sender<Datagram>,rx: Receiver<Datagram>) -> io::Result<Self> {
         let s = make_udp_socket(
             &SockAddr::from(config.addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
@@ -44,7 +44,6 @@ impl Connection {
             }
         };
 
-        let tx1 = tx.clone();
         let socket_rx = Arc::new(socket);
         let socket_tx = socket_rx.clone();
         tokio::spawn(async move {
@@ -52,13 +51,13 @@ impl Connection {
             loop {
                 match socket_rx.recv_from(&mut buf).await {
                     Ok((bytes_read, sender)) => {
-                        if tx1.receiver_count() > 0 && bytes_read > 0 {
+                        if tx.receiver_count() > 0 && bytes_read > 0 {
                             let data = if let Some(data) = buf.get(..bytes_read) {
                                 data.into()
                             } else {
                                 vec![]
                             };
-                            if let Err(_) = tx1.send(Datagram { payload: data.into(), sender: sender }) {
+                            if let Err(_) = tx.send(Datagram { payload: data.into(), sender: sender }).await {
                                 //TODO: log error
                             };
                         }
@@ -70,13 +69,13 @@ impl Connection {
             }
         });
         Ok(Connection {
-            tx: tx,
+            rx: rx,
             socket: socket_tx,
         })
     }
 
     pub fn subscribe(&self) -> Receiver<Datagram> {
-        self.tx.subscribe()
+        self.rx.clone()
     }
 }
 

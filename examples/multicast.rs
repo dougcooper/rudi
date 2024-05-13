@@ -1,9 +1,9 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
-use rudi::{udpmanager::UdpManager, CastMode, IpConfigV4};
+use rudi::{udpmanager::UdpManager, CastMode, Datagram, IpConfigV4};
 
-async fn recv_data(rx: &mut tokio::sync::broadcast::Receiver<Vec<u8>>) {
+async fn recv_data(rx: &mut tokio::sync::broadcast::Receiver<Datagram>) {
     while let Ok(data) = rx.recv().await {
-        println!("received {} bytes of data", data.len());
+        println!("received {} bytes of data", data.payload.len());
     }
 }
 

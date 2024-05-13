@@ -17,7 +17,7 @@ async fn example_usage() {
 
     tokio::spawn(async move {
         while let Ok(data) = rx1.recv().await {
-            println!("{:?}", data);
+            println!("{:?}", data.payload);
         }
     });
 
@@ -86,7 +86,7 @@ async fn test_rx_data_unicast() {
 
     let r = h.await.unwrap().unwrap();
 
-    assert_eq!(r, data);
+    assert_eq!(r.payload, data);
 }
 
 #[tokio::test]
@@ -114,5 +114,5 @@ async fn test_rx_data_multicast() {
 
     let r = h.await.unwrap().unwrap();
 
-    assert_eq!(r, data);
+    assert_eq!(r.payload, data);
 }

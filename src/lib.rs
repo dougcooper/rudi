@@ -1,9 +1,13 @@
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub mod connection;
 pub mod udpmanager;
 
-pub type Datagram = Vec<u8>;
+#[derive(Clone)]
+pub struct Datagram {
+    pub payload: Vec<u8>,
+    pub sender: SocketAddr
+}
 
 #[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub enum CastMode {

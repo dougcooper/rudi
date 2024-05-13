@@ -4,7 +4,7 @@ use crate::{Datagram, IpConfigV4};
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use tokio::io;
 use tokio::net::UdpSocket;
-use tokio::sync::broadcast::{self, Receiver, Sender};
+use tokio::sync::broadcast::{Receiver, Sender};
 
 const MAX_DATAGRAM_SIZE: usize = 65507;
 
@@ -51,14 +51,14 @@ impl Connection {
             let mut buf = [0u8;MAX_DATAGRAM_SIZE];
             loop {
                 match socket_rx.recv_from(&mut buf).await {
-                    Ok((bytes_read, _)) => {
+                    Ok((bytes_read, sender)) => {
                         if tx1.receiver_count() > 0 && bytes_read > 0 {
                             let data = if let Some(data) = buf.get(..bytes_read) {
                                 data.into()
                             } else {
                                 vec![]
                             };
-                            if let Err(_) = tx1.send(data.into()) {
+                            if let Err(_) = tx1.send(Datagram { payload: data.into(), sender: sender }) {
                                 //TODO: log error
                             };
                         }

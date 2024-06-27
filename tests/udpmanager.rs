@@ -116,3 +116,34 @@ async fn test_rx_data_multicast() {
 
     assert_eq!(r.payload, data);
 }
+
+use tokio::runtime::Runtime;
+
+#[test]
+#[serial]
+fn call_from_sync(){
+    let mut udp = UdpManager::default();
+    let unicast = IpConfigV4 {
+        cast_mode: CastMode::Unicast,
+        addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
+    };
+    let rt = Runtime::new().unwrap();
+    let rx1 = rt.block_on(udp.subscribe(&unicast,None)).unwrap();
+
+    let h = rt.spawn(async move {
+        if let Ok(data) = rx1.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let data = b"deadbeef";
+
+    let sock = udp.get_socket(&unicast).unwrap();
+    rt.block_on(sock.send_to(data,"127.0.0.1:6993")).unwrap();
+
+    let r = rt.block_on(h).unwrap().unwrap();
+
+    assert_eq!(r.payload, data);
+}

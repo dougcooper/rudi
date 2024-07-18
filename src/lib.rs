@@ -11,7 +11,7 @@ pub struct Datagram {
 
 #[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub enum CastMode {
-    Unicast,
+    Unicast(SocketAddrV4),
     Broadcast,
     Multicast(Ipv4Addr)
 }
@@ -31,7 +31,7 @@ mod test{
     #[test]
     fn it_can_hash(){
         let config = IpConfigV4{
-            cast_mode: CastMode::Unicast,
+            cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
             addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap()
         };
 

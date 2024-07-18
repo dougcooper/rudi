@@ -27,7 +27,7 @@ impl Connection {
             &SockAddr::from(config.addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
             match config.cast_mode {
-                crate::CastMode::Unicast => false,
+                crate::CastMode::Unicast(_) => false,
                 _ => true,
             },
         )?;
@@ -35,7 +35,9 @@ impl Connection {
         let socket = UdpSocket::from_std(s.into())?;
 
         match config.cast_mode {
-            crate::CastMode::Unicast => {}
+            crate::CastMode::Unicast(addr) => {
+                socket.connect(addr.to_string()).await?;
+            }
             crate::CastMode::Broadcast => {
                 socket.set_broadcast(true)?;
             }
@@ -46,25 +48,49 @@ impl Connection {
 
         let socket_rx = Arc::new(socket);
         let socket_tx = socket_rx.clone();
+        let cast_mode = config.cast_mode.clone();
         tokio::spawn(async move {
             let mut buf = [0u8;MAX_DATAGRAM_SIZE];
             loop {
-                match socket_rx.recv_from(&mut buf).await {
-                    Ok((bytes_read, sender)) => {
-                        if tx.receiver_count() > 0 && bytes_read > 0 {
-                            let data = if let Some(data) = buf.get(..bytes_read) {
-                                data.into()
-                            } else {
-                                vec![]
-                            };
-                            if let Err(_) = tx.send(Datagram { payload: data.into(), sender: sender }).await {
+                match cast_mode {
+                    crate::CastMode::Unicast(addr) => {
+                        match socket_rx.recv(&mut buf).await {
+                            Ok(bytes_read) => {
+                                if tx.receiver_count() > 0 && bytes_read > 0 {
+                                    let data = if let Some(data) = buf.get(..bytes_read) {
+                                        data.into()
+                                    } else {
+                                        vec![]
+                                    };
+                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: addr.into() }).await {
+                                        //TODO: log error
+                                    };
+                                }
+                            }
+                            Err(_) => {
                                 //TODO: log error
-                            };
+                            }
                         }
-                    }
-                    Err(_) => {
-                        //TODO: log error
-                    }
+                    },
+                    crate::CastMode::Multicast(_) | crate::CastMode::Broadcast=> {
+                        match socket_rx.recv_from(&mut buf).await {
+                            Ok((bytes_read, sender)) => {
+                                if tx.receiver_count() > 0 && bytes_read > 0 {
+                                    let data = if let Some(data) = buf.get(..bytes_read) {
+                                        data.into()
+                                    } else {
+                                        vec![]
+                                    };
+                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: sender }).await {
+                                        //TODO: log error
+                                    };
+                                }
+                            }
+                            Err(_) => {
+                                //TODO: log error
+                            }
+                        }
+                    },
                 }
             }
         });

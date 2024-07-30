@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{Datagram, IpConfigV4};
-use async_channel::{Receiver, Sender};
+use async_broadcast::{Receiver, Sender};
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use tokio::io;
 use tokio::net::UdpSocket;
@@ -62,7 +62,7 @@ impl Connection {
                                     } else {
                                         vec![]
                                     };
-                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: addr.into() }).await {
+                                    if let Err(_) = tx.broadcast(Datagram { payload: data.into(), sender: addr.into() }).await {
                                         //TODO: log error
                                     };
                                 }
@@ -81,7 +81,7 @@ impl Connection {
                                     } else {
                                         vec![]
                                     };
-                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: sender }).await {
+                                    if let Err(_) = tx.broadcast(Datagram { payload: data.into(), sender: sender }).await {
                                         //TODO: log error
                                     };
                                 }
@@ -116,4 +116,20 @@ mod tests {
         assert!(buf.get(..5).is_some());
         assert!(buf.get(..6).is_none());
     }
+
+    #[tokio::test]
+    async fn test_async_channel() {
+        let (tx,rx) = async_broadcast::broadcast::<u32>(5);
+
+        let mut rx1 = rx.clone();
+        let mut rx2 = rx;
+
+        tx.broadcast(1).await.unwrap();
+
+        let (r1,r2) = tokio::join!(rx1.recv(),rx2.recv());
+
+        assert_eq!(r1.unwrap(),1);
+        assert_eq!(r2.unwrap(),1);
+    }
+
 }

@@ -1,5 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
-use async_channel::Receiver;
+use async_broadcast::Receiver;
 use rudi::{udpmanager::UdpManager, CastMode, Datagram, IpConfigV4};
 
 async fn recv_data(rx: &mut Receiver<Datagram>) {

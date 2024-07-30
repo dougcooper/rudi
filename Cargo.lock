@@ -27,12 +27,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-channel"
-version = "2.3.0"
+name = "async-broadcast"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f2776ead772134d55b62dd45e59a79e21612d85d0af729b8b7d3967d601a62a"
+checksum = "20cd0e2e25ea8e5f7e9df04578dc6cf5c83577fd09b1a46aaf5c85e1c33f2a7e"
 dependencies = [
- "concurrent-queue",
  "event-listener",
  "event-listener-strategy",
  "futures-core",
@@ -470,7 +469,7 @@ dependencies = [
 name = "rudi"
 version = "0.1.0"
 dependencies = [
- "async-channel",
+ "async-broadcast",
  "bytes",
  "rstest",
  "serial_test",

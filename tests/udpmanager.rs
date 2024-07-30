@@ -13,7 +13,7 @@ async fn example_usage() {
         cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let rx1 = udp.subscribe(&unicast,None).await.unwrap();
+    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     tokio::spawn(async move {
         while let Ok(data) = rx1.recv().await {
@@ -69,7 +69,7 @@ async fn test_rx_data_unicast() {
         cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let rx1 = udp.subscribe(&unicast,None).await.unwrap();
+    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -97,7 +97,7 @@ async fn test_rx_data_broadcast_all() {
         cast_mode: CastMode::Broadcast,
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let rx1 = udp.subscribe(&broadcast,None).await.unwrap();
+    let mut rx1 = udp.subscribe(&broadcast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -125,7 +125,7 @@ async fn test_cant_broadcast_on_unicast() {
         cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let rx1 = udp.subscribe(&broadcast,None).await.unwrap();
+    let mut rx1 = udp.subscribe(&broadcast,None).await.unwrap();
 
     let _ = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -149,7 +149,7 @@ async fn test_rx_data_multicast() {
         cast_mode: CastMode::Multicast("225.1.1.100".parse::<Ipv4Addr>().unwrap()),
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
-    let rx1 = udp.subscribe(&mcast,None).await.unwrap();
+    let mut rx1 = udp.subscribe(&mcast,None).await.unwrap();
 
     let h = tokio::spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -180,7 +180,7 @@ fn call_from_sync(){
         addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
     };
     let rt = Runtime::new().unwrap();
-    let rx1 = rt.block_on(udp.subscribe(&unicast,None)).unwrap();
+    let mut rx1 = rt.block_on(udp.subscribe(&unicast,None)).unwrap();
 
     let h = rt.spawn(async move {
         if let Ok(data) = rx1.recv().await {
@@ -198,4 +198,42 @@ fn call_from_sync(){
     let r = rt.block_on(h).unwrap().unwrap();
 
     assert_eq!(r.payload, data);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_multiple_rx_data_unicast() {
+    let mut udp = UdpManager::default();
+    let unicast = IpConfigV4 {
+        cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
+        addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
+    };
+    let mut rx1 = udp.subscribe(&unicast,None).await.unwrap();
+    let mut rx2 = udp.subscribe(&unicast,None).await.unwrap();
+
+    let h1 = tokio::spawn(async move {
+        if let Ok(data) = rx1.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let h2 = tokio::spawn(async move {
+        if let Ok(data) = rx2.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let data = b"deadbeef";
+
+    let sock = udp.get_socket(&unicast).unwrap();
+    sock.send(data).await.unwrap();
+
+    let (r1,r2) = tokio::join!(h1,h2);
+
+    assert_eq!(r1.unwrap().unwrap().payload, data);
+    assert_eq!(r2.unwrap().unwrap().payload, data);
 }

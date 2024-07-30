@@ -11,4 +11,5 @@ socket2 = { version = "0.5.5", features = ["all"] }
 tokio = { version = "1.35.0", features = ["full", "net", "sync"] }
 
 [dev-dependencies]
+clap = { version = "4.5.11", features = ["derive"] }
 rstest = "0.18.2"

@@ -237,3 +237,41 @@ async fn test_multiple_rx_data_unicast() {
     assert_eq!(r1.unwrap().unwrap().payload, data);
     assert_eq!(r2.unwrap().unwrap().payload, data);
 }
+
+#[tokio::test]
+#[serial]
+async fn test_multiple_rx_data_multicast() {
+    let mut udp = UdpManager::default();
+    let mcast = IpConfigV4 {
+        cast_mode: CastMode::Multicast("224.1.1.100".parse::<Ipv4Addr>().unwrap()),
+        addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap(),
+    };
+    let mut rx1 = udp.subscribe(&mcast,None).await.unwrap();
+    let mut rx2 = udp.subscribe(&mcast,None).await.unwrap();
+
+    let h1 = tokio::spawn(async move {
+        if let Ok(data) = rx1.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let h2 = tokio::spawn(async move {
+        if let Ok(data) = rx2.recv().await {
+            Some(data)
+        }else{
+            None
+        }
+    });
+
+    let data = b"deadbeef";
+
+    let sock = udp.get_socket(&mcast).unwrap();
+    sock.send_to(data,"224.1.1.100:6993").await.unwrap();
+
+    let (r1,r2) = tokio::join!(h1,h2);
+
+    assert_eq!(r1.unwrap().unwrap().payload, data);
+    assert_eq!(r2.unwrap().unwrap().payload, data);
+}

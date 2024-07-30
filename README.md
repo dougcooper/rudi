@@ -37,6 +37,18 @@ cargo install cross
 cross test --target x86_64-unknown-linux-gnu
 ```
 
+## generate test data
+
+using netcat
+
+```bash
+#unicast
+echo hello | netcat -c -w 1 -v -u 192.168.56.1 6993
+
+#multicast
+echo hello | netcat -c -w 1 -v -u 224.1.1.100 6993
+```
+
 ## ROADMAP
 
 - [ ] restrict to interface using connect

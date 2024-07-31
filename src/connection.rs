@@ -22,11 +22,11 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn new(config: &IpConfigV4, tx: Sender<Datagram>,rx: Receiver<Datagram>) -> io::Result<Self> {
+    pub async fn new(ip_config: &IpConfigV4, tx: Sender<Datagram>,rx: Receiver<Datagram>) -> io::Result<Self> {
         let s = make_udp_socket(
-            &SockAddr::from(config.addr),
+            &SockAddr::from(ip_config.bind_addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
-            match config.cast_mode {
+            match ip_config.cast_mode {
                 crate::CastMode::Unicast(_) => false,
                 _ => true,
             },
@@ -34,21 +34,21 @@ impl Connection {
 
         let socket = UdpSocket::from_std(s.into())?;
 
-        match config.cast_mode {
+        match &ip_config.cast_mode {
             crate::CastMode::Unicast(addr) => {
                 socket.connect(addr.to_string()).await?;
             }
             crate::CastMode::Broadcast => {
                 socket.set_broadcast(true)?;
             }
-            crate::CastMode::Multicast(addr) => {
-                socket.join_multicast_v4(addr, config.addr.ip().clone())?;
+            crate::CastMode::Multicast(mcast_config) => {
+                socket.join_multicast_v4(mcast_config.group, mcast_config.interface)?;
             }
         };
 
         let socket_rx = Arc::new(socket);
         let socket_tx = socket_rx.clone();
-        let cast_mode = config.cast_mode.clone();
+        let cast_mode = ip_config.cast_mode.clone();
         tokio::spawn(async move {
             let mut buf = [0u8;MAX_DATAGRAM_SIZE];
             loop {

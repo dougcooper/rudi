@@ -11,9 +11,9 @@ pub struct UdpManager {
 }
 
 impl UdpManager {
-    pub async fn subscribe(&mut self, config: &IpConfigV4, channel_size: Option<usize>) -> io::Result<Receiver<Datagram>> {
+    pub async fn subscribe(&mut self, ip_config: &IpConfigV4, channel_size: Option<usize>) -> io::Result<Receiver<Datagram>> {
 
-        let conn = if let Some(conn) = self.connections.get(config) {
+        let conn = if let Some(conn) = self.connections.get(ip_config) {
             conn
         } else {
             let (tx,rx) = if let Some(size) = channel_size {
@@ -21,9 +21,9 @@ impl UdpManager {
             }else{
                 async_broadcast::broadcast::<Datagram>(u16::MAX as usize)
             };
-            let c = Connection::new(&config,tx,rx).await?;
-            self.connections.insert(config.clone(), c);
-            self.connections.get(config).unwrap()
+            let c = Connection::new(&ip_config,tx,rx).await?;
+            self.connections.insert(ip_config.clone(), c);
+            self.connections.get(ip_config).unwrap()
         };
 
         Ok(conn.subscribe())

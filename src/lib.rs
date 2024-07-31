@@ -10,16 +10,22 @@ pub struct Datagram {
 }
 
 #[derive(PartialEq,Eq,Hash,Clone,Debug)]
+pub struct MulticastConfig {
+    pub group: Ipv4Addr,
+    pub interface: Ipv4Addr
+}
+
+#[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub enum CastMode {
     Unicast(SocketAddrV4),
     Broadcast,
-    Multicast(Ipv4Addr)
+    Multicast(MulticastConfig)
 }
 
 #[derive(PartialEq,Eq,Hash,Clone,Debug)]
 pub struct IpConfigV4{
     pub cast_mode: CastMode,
-    pub addr: SocketAddrV4
+    pub bind_addr: SocketAddrV4
 }
 
 #[cfg(test)]
@@ -32,7 +38,7 @@ mod test{
     fn it_can_hash(){
         let config = IpConfigV4{
             cast_mode: CastMode::Unicast("127.0.0.1:6993".parse::<SocketAddrV4>().unwrap()),
-            addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap()
+            bind_addr: "0.0.0.0:6993".parse::<SocketAddrV4>().unwrap()
         };
 
         let mut m = HashMap::new();

@@ -12,10 +12,11 @@ async fn recv_data(rx: &mut Receiver<Datagram>, name: &str) {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
+    /// Source and port to receive traffic from
     #[arg(short, long, default_value_t = String::from("127.0.0.1:0"))]
     source: String,
 
+    /// Interface and Port to bind socket to
     #[arg(short, long, default_value_t = String::from("0.0.0.0:6993"))]
     destination: String,
 }
@@ -29,7 +30,7 @@ async fn main() {
     
     let unicast = IpConfigV4 {
         cast_mode: CastMode::Unicast(args.source.parse::<SocketAddrV4>().unwrap()),
-        addr: args.destination.parse::<SocketAddrV4>().unwrap(),
+        bind_addr: args.destination.parse::<SocketAddrV4>().unwrap(),
     };
 
     let mut rx1 = udp.subscribe(&(unicast.clone()),None).await.unwrap();

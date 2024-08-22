@@ -391,3 +391,27 @@ async fn test_diff_rx_data_multicast() {
     assert_eq!(r1.unwrap().unwrap().payload, data);
     assert_eq!(r2.unwrap().unwrap().payload, data);
 }
+
+#[tokio::test]
+#[serial]
+async fn test_new_subscriptions_should_not_receive_old_data() {
+    let mut udp = UdpManager::default();
+    let broadcast = IpConfigV4 {
+        cast_mode: CastMode::Broadcast,
+        bind_addr: "127.0.0.1:6993".parse::<SocketAddrV4>().unwrap(),
+    };
+
+    let data = b"deadbeef";
+
+    let mut rx1 = udp.subscribe(&broadcast,None).await.unwrap();
+
+    let sock = udp.get_socket(&broadcast).unwrap();
+    sock.send_to(data,"127.0.0.1:6993").await.unwrap();
+
+    assert!(rx1.recv().await.is_ok());
+    assert!(rx1.try_recv().is_err());
+
+    let mut rx2 = udp.subscribe(&broadcast,None).await.unwrap();
+
+    assert!(rx2.try_recv().is_err());
+}

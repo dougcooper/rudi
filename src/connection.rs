@@ -101,7 +101,7 @@ impl Connection {
     }
 
     pub fn subscribe(&self) -> Receiver<Datagram> {
-        self.rx.clone()
+        self.rx.new_receiver()
     }
 }
 
@@ -130,6 +130,26 @@ mod tests {
 
         assert_eq!(r1.unwrap(),1);
         assert_eq!(r2.unwrap(),1);
+    }
+
+    #[tokio::test]
+    async fn test_tokio_memory(){
+        let (tx, mut rx1) = tokio::sync::broadcast::channel(16);
+        tx.send(10).unwrap();
+        assert_eq!(rx1.recv().await.unwrap(), 10);
+        
+        let mut rx2 = tx.subscribe();
+        assert!(rx2.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_smol_memory(){
+        let (tx, mut rx1) = async_broadcast::broadcast(16);
+        tx.broadcast(10).await.unwrap();
+        assert_eq!(rx1.recv().await.unwrap(), 10);
+        
+        let mut rx2 = rx1.clone();
+        assert!(rx2.try_recv().is_err());
     }
 
 }

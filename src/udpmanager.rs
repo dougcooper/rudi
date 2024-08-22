@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use async_broadcast::Receiver;
+use tokio::sync::broadcast::Receiver;
 use tokio::io;
 
 use crate::{connection::Connection, Datagram, IpConfigV4};
@@ -16,12 +16,14 @@ impl UdpManager {
         let conn = if let Some(conn) = self.connections.get(ip_config) {
             conn
         } else {
-            let (tx,rx) = if let Some(size) = channel_size {
-                async_broadcast::broadcast::<Datagram>(size)
+            let (tx,_) = if let Some(size) = channel_size {
+                // async_broadcast::broadcast::<Datagram>(size)
+                tokio::sync::broadcast::channel(size)
             }else{
-                async_broadcast::broadcast::<Datagram>(u16::MAX as usize)
+                // async_broadcast::broadcast::<Datagram>(u16::MAX as usize)
+                tokio::sync::broadcast::channel(u16::MAX as usize)
             };
-            let c = Connection::new(&ip_config,tx,rx).await?;
+            let c = Connection::new(&ip_config,tx).await?;
             self.connections.insert(ip_config.clone(), c);
             self.connections.get(ip_config).unwrap()
         };

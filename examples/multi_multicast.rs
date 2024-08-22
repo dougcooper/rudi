@@ -1,5 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
-use async_broadcast::Receiver;
+use tokio::sync::broadcast::Receiver;
 use clap::Parser;
 use rudi::{udpmanager::UdpManager, CastMode, Datagram, IpConfigV4, MulticastConfig};
 

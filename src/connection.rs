@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{Datagram, IpConfigV4};
-use async_broadcast::{Receiver, Sender};
+use tokio::sync::broadcast::{Receiver, Sender};
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use tokio::io;
 use tokio::net::UdpSocket;
@@ -17,12 +17,12 @@ fn make_udp_socket(addr: &SockAddr, _reuse_port: bool) -> io::Result<Socket> {
 }
 
 pub struct Connection {
-    rx: Receiver<Datagram>,
+    tx: Sender<Datagram>,
     pub socket: Arc<UdpSocket>,
 }
 
 impl Connection {
-    pub async fn new(ip_config: &IpConfigV4, tx: Sender<Datagram>,rx: Receiver<Datagram>) -> io::Result<Self> {
+    pub async fn new(ip_config: &IpConfigV4, tx: Sender<Datagram>) -> io::Result<Self> {
         let s = make_udp_socket(
             &SockAddr::from(ip_config.bind_addr),
             //we dont want to allow port reuse for unicast, otherwise another listener on the same port could steal data
@@ -45,7 +45,7 @@ impl Connection {
                 socket.join_multicast_v4(mcast_config.group, mcast_config.interface)?;
             }
         };
-
+        let tx_clone = tx.clone();
         let socket_rx = Arc::new(socket);
         let socket_tx = socket_rx.clone();
         let cast_mode = ip_config.cast_mode.clone();
@@ -62,7 +62,7 @@ impl Connection {
                                     } else {
                                         vec![]
                                     };
-                                    if let Err(_) = tx.broadcast(Datagram { payload: data.into(), sender: addr.into() }).await {
+                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: addr.into() }) {
                                         //TODO: log error
                                     };
                                 }
@@ -81,7 +81,7 @@ impl Connection {
                                     } else {
                                         vec![]
                                     };
-                                    if let Err(_) = tx.broadcast(Datagram { payload: data.into(), sender: sender }).await {
+                                    if let Err(_) = tx.send(Datagram { payload: data.into(), sender: sender }) {
                                         //TODO: log error
                                     };
                                 }
@@ -95,13 +95,13 @@ impl Connection {
             }
         });
         Ok(Connection {
-            rx: rx,
+            tx: tx_clone,
             socket: socket_tx,
         })
     }
 
     pub fn subscribe(&self) -> Receiver<Datagram> {
-        self.rx.new_receiver()
+        self.tx.subscribe()
     }
 }
 
@@ -137,9 +137,13 @@ mod tests {
         let (tx, mut rx1) = tokio::sync::broadcast::channel(16);
         tx.send(10).unwrap();
         assert_eq!(rx1.recv().await.unwrap(), 10);
+        assert!(rx1.is_empty());
+        assert!(rx1.len() ==0);
         
         let mut rx2 = tx.subscribe();
         assert!(rx2.try_recv().is_err());
+        assert!(rx2.is_empty());
+        assert!(rx2.len() ==0);
     }
 
     #[tokio::test]
@@ -147,9 +151,13 @@ mod tests {
         let (tx, mut rx1) = async_broadcast::broadcast(16);
         tx.broadcast(10).await.unwrap();
         assert_eq!(rx1.recv().await.unwrap(), 10);
+        assert!(rx1.is_empty());
+        assert!(rx1.len() ==0);
         
-        let mut rx2 = rx1.clone();
+        let mut rx2 = rx1.new_receiver();
         assert!(rx2.try_recv().is_err());
+        assert!(rx2.is_empty());
+        assert!(rx2.len() ==0);
     }
 
 }

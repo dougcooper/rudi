@@ -410,6 +410,8 @@ async fn test_new_subscriptions_should_not_receive_old_data() {
 
     assert!(rx1.recv().await.is_ok());
     assert!(rx1.try_recv().is_err());
+    assert!(rx1.is_empty());
+    assert!(rx1.len() ==0);
 
     let mut rx2 = udp.subscribe(&broadcast,None).await.unwrap();
 
